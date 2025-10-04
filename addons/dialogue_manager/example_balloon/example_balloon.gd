@@ -126,10 +126,13 @@ func next(next_id: String) -> void:
 
 func _input(event: InputEvent) -> void:
 	# See if we need to skip typing of the dialogue
+	var m_pressed = event is InputEventMouseButton and event.is_pressed() and event.button_index == MOUSE_BUTTON_LEFT
+	var m_released = event is InputEventMouseButton and event.is_released() and event.button_index == MOUSE_BUTTON_LEFT
+	
 	if dialogue_label.is_typing:
 		var skip_button_was_pressed: bool = event.is_action_pressed(skip_action)
-		var ff_was_pressed: bool = event.is_action_pressed(fast_forward_action)
-		var ff_was_released: bool = event.is_action_released(fast_forward_action)
+		var ff_was_pressed: bool = event.is_action_pressed(fast_forward_action) or m_pressed
+		var ff_was_released: bool = event.is_action_released(fast_forward_action) or m_released
 		if skip_button_was_pressed:
 			get_viewport().set_input_as_handled()
 			dialogue_label.skip_typing()
@@ -138,16 +141,18 @@ func _input(event: InputEvent) -> void:
 			dialogue_label.toggle_fast_forward(true)
 		if !ff_was_pressed and ff_was_released:
 			dialogue_label.toggle_fast_forward(false)
+
 	if !is_waiting_for_input: return
 	if dialogue_line.responses.size() > 0: return
 
 	# When there are no response options the balloon itself is the clickable thing
 	get_viewport().set_input_as_handled()
 
-	if event is InputEventMouseButton and event.is_pressed() and event.button_index == MOUSE_BUTTON_LEFT:
+	if m_pressed:
 		next(dialogue_line.next_id)
 	elif event.is_action_pressed(next_action) and get_viewport().gui_get_focus_owner() == balloon:
 		next(dialogue_line.next_id)
+
 
 
 func _on_responses_menu_response_selected(response: DialogueResponse) -> void:

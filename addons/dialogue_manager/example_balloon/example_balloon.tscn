@@ -143,7 +143,7 @@ theme_override_constants/separation = 32
 
 [node name="Portrait" type="TextureRect" parent="Balloon/MarginContainer/DialogueContainer/MarginContainer/HBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 152)
+custom_minimum_size = Vector2(152, 152)
 layout_mode = 2
 texture = ExtResource("3_1337t")
 expand_mode = 3
