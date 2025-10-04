@@ -40,6 +40,8 @@ signal bridge_dialogue_started(resource: DialogueResource)
 ## Used internally
 signal bridge_mutated()
 
+## Whether dialogue manager is active or not
+var is_active: bool = false
 
 ## The list of globals that dialogue can query
 var game_states: Array = []
@@ -90,6 +92,7 @@ func get_next_dialogue_line(resource: DialogueResource, key: String = "", extra_
 	if line == null:
 		# End the conversation
 		dialogue_ended.emit(resource)
+		is_active = false
 	return line
 
 
@@ -488,6 +491,7 @@ func _start_balloon(balloon: Node, resource: DialogueResource, title: String, ex
 
 	dialogue_started.emit(resource)
 	bridge_dialogue_started.emit(resource)
+	is_active = true
 
 
 # Get the path to the example balloon
@@ -533,6 +537,7 @@ func _bridge_get_next_dialogue_line(resource: DialogueResource, key: String, ext
 	if line == null:
 		# End the conversation
 		dialogue_ended.emit(resource)
+		is_active = false
 
 
 func _bridge_get_line(resource: DialogueResource, key: String, extra_game_states: Array = []) -> void:
@@ -1510,7 +1515,7 @@ func _resolve_thing_method(thing, method: String, args: Array):
 						if m.hint_string != "":
 							assert(false, DMConstants.translate(&"runtime.unsupported_array_type").format({ type = m.hint_string}))
 			if typeof(args[i]) != to_type:
-				args[i] = convert(args[i], to_type)
+				args[i] = type_convert(args[i], to_type)
 
 		return await thing.callv(method, args)
 

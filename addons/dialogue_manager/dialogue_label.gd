@@ -21,13 +21,10 @@ signal finished_typing()
 ## [Deprecated] No longer emitted.
 signal paused_typing(duration: float)
 
-
-## The action to press to skip typing.
-@export var skip_action: StringName = &"ui_cancel"
-
 ## The speed with which the text types out.
-@export var seconds_per_step: float = 0.02
-
+@export var seconds_per_step: float = 0.04
+## The speed which seconds_per_step devided to if fast forward is enabled.
+@export var fast_forward_speed_multiplier: float = 4.0
 ## Automatically have a brief pause when these characters are encountered.
 @export var pause_at_characters: String = ".?!"
 
@@ -40,9 +37,10 @@ signal paused_typing(duration: float)
 @export var skip_pause_at_abbreviations: PackedStringArray = ["Mr", "Mrs", "Ms", "Dr", "etc", "eg", "ex"]
 
 ## The amount of time to pause when exposing a character present in `pause_at_characters`.
-@export var seconds_per_pause_step: float = 0.3
+@export var seconds_per_pause_step: float = 1.0
 
 var _already_mutated_indices: PackedInt32Array = []
+var _seconds_per_step: float
 
 
 ## The current line of dialogue.
@@ -72,19 +70,20 @@ var _is_awaiting_mutation: bool = false
 
 
 func _process(delta: float) -> void:
-	if _is_typing:
-		# Type out text
-		if visible_ratio < 1:
-			# See if we are waiting
-			if _waiting_seconds > 0:
-				_waiting_seconds = _waiting_seconds - delta
-			# If we are no longer waiting then keep typing
-			if _waiting_seconds <= 0:
-				_type_next(delta, _waiting_seconds)
-		else:
-			# Make sure any mutations at the end of the line get run
-			_mutate_inline_mutations(get_total_character_count())
-			is_typing = false
+	if !_is_typing:
+		return
+	# Type out text
+	if visible_ratio >= 1:
+		# Make sure any mutations at the end of the line get run
+		_mutate_inline_mutations(get_total_character_count())
+		is_typing = false
+		return
+	# See if we are waiting
+	if _waiting_seconds > 0:
+		_waiting_seconds = _waiting_seconds - delta
+	# If we are no longer waiting then keep typing
+	if _waiting_seconds <= 0:
+		_type_next(delta, _waiting_seconds)
 
 
 ## Sets the label's text from the current dialogue line. Override if you want
@@ -103,6 +102,9 @@ func type_out() -> void:
 	_last_mutation_index = -1
 	_already_mutated_indices.clear()
 
+	if _seconds_per_step == 0.0:
+		_seconds_per_step = seconds_per_step
+
 	is_typing = true
 	started_typing.emit()
 
@@ -116,6 +118,12 @@ func type_out() -> void:
 		visible_characters = get_total_character_count()
 		is_typing = false
 
+## Fast forward
+func toggle_fast_forward(b: bool) -> void:
+	_seconds_per_step = seconds_per_step / fast_forward_speed_multiplier if b else seconds_per_step
+	# If paused
+	if _waiting_seconds != 0.0 and b:
+		_waiting_seconds = 0.0
 
 ## Stop typing out the text and jump right to the end
 func skip_typing() -> void:
@@ -147,7 +155,7 @@ func _type_next(delta: float, seconds_needed: float) -> void:
 		if visible_characters <= get_total_character_count():
 			spoke.emit(get_parsed_text()[visible_characters - 1], visible_characters - 1, _get_speed(visible_characters))
 		# See if there's time to type out some more in this frame
-		seconds_needed += seconds_per_step * (1.0 / _get_speed(visible_characters))
+		seconds_needed += _seconds_per_step * (1.0 / _get_speed(visible_characters))
 		if seconds_needed > delta:
 			_waiting_seconds += seconds_needed
 		else:
