@@ -1,9 +1,10 @@
-[gd_scene load_steps=13 format=3 uid="uid://73jm5qjy52vq"]
+[gd_scene load_steps=14 format=3 uid="uid://73jm5qjy52vq"]
 
 [ext_resource type="Script" uid="uid://d1wt4ma6055l8" path="res://addons/dialogue_manager/example_balloon/example_balloon.gd" id="1_36de5"]
 [ext_resource type="PackedScene" uid="uid://ckvgyvclnwggo" path="res://addons/dialogue_manager/dialogue_label.tscn" id="2_a8ve6"]
 [ext_resource type="Script" uid="uid://bm0f76elrh4gg" path="res://addons/dialogue_manager/example_balloon/animation.gd" id="2_nlsx6"]
 [ext_resource type="Script" uid="uid://bb52rsfwhkxbn" path="res://addons/dialogue_manager/dialogue_responses_menu.gd" id="3_72ixx"]
+[ext_resource type="Texture2D" uid="uid://cwj4wuscginye" path="res://icon.svg" id="3_1337t"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_spyqn"]
 bg_color = Color(0, 0, 0, 1)
@@ -138,6 +139,14 @@ layout_mode = 2
 
 [node name="HBoxContainer" type="HBoxContainer" parent="Balloon/MarginContainer/DialogueContainer/MarginContainer"]
 layout_mode = 2
+theme_override_constants/separation = 32
+
+[node name="Portrait" type="TextureRect" parent="Balloon/MarginContainer/DialogueContainer/MarginContainer/HBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 152)
+layout_mode = 2
+texture = ExtResource("3_1337t")
+expand_mode = 3
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Balloon/MarginContainer/DialogueContainer/MarginContainer/HBoxContainer"]
 layout_mode = 2

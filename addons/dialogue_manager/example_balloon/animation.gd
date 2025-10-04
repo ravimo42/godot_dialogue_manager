@@ -28,7 +28,18 @@ func _ready() -> void:
 		dm_balloon.responses_menu.show()
 		_play_response_anim.call_deferred()
 	)
-
+	dm_balloon.portrait_show.connect(func(old_texture: Texture2D, new_texture: Texture2D):
+		var portrait := dm_balloon.portrait
+		portrait.show()
+		if old_texture == new_texture:
+			return
+		AutoTween.new(portrait, &"position", Vector2.ZERO, 0.4).from(Vector2(-32.0, 0.0))
+		AutoTween.new(portrait, &"modulate:a", 1.0, 0.25, Tween.TRANS_LINEAR).from(0.5)
+	)
+	dm_balloon.portrait_hide.connect(func():
+		dm_balloon.portrait.hide()
+	)
+	
 func _play_dialogue_anim() -> void:
 	dialogue_cont.scale = Vector2.ONE
 	AutoTween.new(dialogue_cont, &"position", _init_dialogue_pos, ANIM_DUR).from(_init_dialogue_pos + Vector2(0.0, 128.0))

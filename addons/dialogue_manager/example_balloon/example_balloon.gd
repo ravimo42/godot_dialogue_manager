@@ -4,6 +4,8 @@ signal dialogue_started
 signal dialogue_finished
 signal responses_popup
 signal responses_finished
+signal portrait_show(old_texture: Texture2D, new_texture: Texture2D)
+signal portrait_hide
 
 @export var next_action: StringName = &"ui_accept"
 @export var fast_forward_action: StringName = &"ui_accept"
@@ -34,6 +36,7 @@ var mutation_cooldown: Timer = Timer.new()
 @onready var dialogue_label: DialogueLabel = %DialogueLabel
 @onready var responses_menu: DialogueResponsesMenu = %ResponsesMenu
 @onready var progress: Polygon2D = %Progress
+@onready var portrait: TextureRect = %Portrait
 
 func _ready() -> void:
 	balloon.hide()
@@ -72,7 +75,7 @@ func start(dialogue_resource: DialogueResource, title: String, extra_game_states
 ## Apply any changes to the balloon given a new [DialogueLine].
 func apply_dialogue_line() -> void:
 	mutation_cooldown.stop()
-
+	
 	progress.hide()
 	is_waiting_for_input = false
 	balloon.focus_mode = Control.FOCUS_ALL
@@ -90,6 +93,16 @@ func apply_dialogue_line() -> void:
 	will_hide_balloon = false
 
 	dialogue_label.show()
+	
+	var portrait_res = _process_portrait_tag()
+	
+	if portrait_res == null:
+		portrait_hide.emit()
+	else:
+		portrait_show.emit(portrait.texture, portrait_res)
+		portrait.texture = portrait_res
+		(func(): portrait.size = Vector2(152.0, 152.0)).call_deferred()
+	
 	if !dialogue_line.text.is_empty():
 		dialogue_label.type_out()
 		await dialogue_label.finished_typing
@@ -151,3 +164,34 @@ func _on_mutated(_mutation: Dictionary) -> void:
 		is_waiting_for_input = false
 		will_hide_balloon = true
 		mutation_cooldown.start(0.1)
+
+func _process_portrait_tag() -> Variant:
+	var characters = get_node_or_null("/root/Characters")
+	if characters == null:
+		return null
+	if dialogue_line.tags.is_empty():
+		return null
+		
+	var expression := dialogue_line.tags[0].capitalize()
+	var character := dialogue_line.character.capitalize()
+	
+	if !characters.portraits.has(character):
+		return null
+	if !characters.portraits[character].has(expression):
+		return null
+	
+	var path: StringName = characters.portraits[character][expression]
+
+	if characters.cached_portraits.has(path):
+		if characters.cached_portraits.size() <= 256:
+			return characters.cached_portraits[path]
+		characters.cached_portraits.clear()
+	
+	var image := Image.load_from_file(path)
+	var texture := ImageTexture.create_from_image(image)
+
+	assert(texture != null, "Invalid path: %s" % path)
+	
+	characters.cached_portraits.set(path, texture)
+	
+	return texture
