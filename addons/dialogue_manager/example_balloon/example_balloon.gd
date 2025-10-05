@@ -6,6 +6,9 @@ signal responses_popup
 signal responses_finished
 signal portrait_show(old_texture: Texture2D, new_texture: Texture2D)
 signal portrait_hide
+signal line_changed
+
+const PORTRAIT_SIZE := Vector2(153.0, 153.0)
 
 @export var next_action: StringName = &"ui_accept"
 @export var fast_forward_action: StringName = &"ui_accept"
@@ -16,6 +19,7 @@ var temporary_game_states: Array = []
 var is_waiting_for_input: bool = false
 var will_hide_balloon: bool = false
 var locals: Dictionary = {}
+var exiting := false
 
 var _locale: String = TranslationServer.get_locale()
 
@@ -24,6 +28,7 @@ var dialogue_line: DialogueLine:
 		if value:
 			dialogue_line = value
 			apply_dialogue_line()
+			line_changed.emit()
 		else:
 			dialogue_finished.emit()
 	get:
@@ -94,14 +99,15 @@ func apply_dialogue_line() -> void:
 
 	dialogue_label.show()
 	
-	var portrait_res = _process_portrait_tag()
-	
+	var portrait_res := _process_portrait_tag()
+		
 	if portrait_res == null:
 		portrait_hide.emit()
 	else:
 		portrait_show.emit(portrait.texture, portrait_res)
-		portrait.texture = portrait_res
-		(func(): portrait.size = Vector2(152.0, 152.0)).call_deferred()
+		(func():
+			portrait.size = PORTRAIT_SIZE
+		).call_deferred()
 	
 	if !dialogue_line.text.is_empty():
 		dialogue_label.type_out()
@@ -125,10 +131,13 @@ func next(next_id: String) -> void:
 	dialogue_line = await resource.get_next_dialogue_line(next_id, temporary_game_states)
 
 func _input(event: InputEvent) -> void:
-	# See if we need to skip typing of the dialogue
 	var m_pressed = event is InputEventMouseButton and event.is_pressed() and event.button_index == MOUSE_BUTTON_LEFT
 	var m_released = event is InputEventMouseButton and event.is_released() and event.button_index == MOUSE_BUTTON_LEFT
 	
+	if exiting:
+		return
+	
+	# See if we need to skip typing of the dialogue
 	if dialogue_label.is_typing:
 		var skip_button_was_pressed: bool = event.is_action_pressed(skip_action)
 		var ff_was_pressed: bool = event.is_action_pressed(fast_forward_action) or m_pressed
@@ -170,8 +179,9 @@ func _on_mutated(_mutation: Dictionary) -> void:
 		will_hide_balloon = true
 		mutation_cooldown.start(0.1)
 
-func _process_portrait_tag() -> Variant:
+func _process_portrait_tag() -> ImageTexture:
 	var characters = get_node_or_null("/root/Characters")
+	
 	if characters == null:
 		return null
 	if dialogue_line.tags.is_empty():
@@ -181,8 +191,10 @@ func _process_portrait_tag() -> Variant:
 	var character := dialogue_line.character.capitalize()
 	
 	if !characters.portraits.has(character):
+		print("Character '%s' is not found." % character)
 		return null
 	if !characters.portraits[character].has(expression):
+		printerr("Expression '%s' for character '%s' is not found." % [expression, character])
 		return null
 	
 	var path: StringName = characters.portraits[character][expression]

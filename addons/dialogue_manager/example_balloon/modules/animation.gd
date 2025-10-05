@@ -21,6 +21,7 @@ func _ready() -> void:
 	)
 	dm_balloon.dialogue_finished.connect(func():
 		dm_balloon.responses_menu.hide()
+		dm_balloon.exiting = true
 		await _play_exit_dialogue_anim()
 		dm_balloon.queue_free()
 	)
@@ -33,6 +34,7 @@ func _ready() -> void:
 		portrait.show()
 		if old_texture == new_texture:
 			return
+		portrait.texture = new_texture
 		AutoTween.new(portrait, &"position", Vector2.ZERO, 0.4).from(Vector2(-32.0, 0.0))
 		AutoTween.new(portrait, &"modulate:a", 1.0, 0.25, Tween.TRANS_LINEAR).from(0.5)
 	)
